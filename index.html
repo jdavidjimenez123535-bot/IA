@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaTech — Sistema Inteligente de Tickets</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f1f0ec;
+      --border: rgba(0,0,0,0.10);
+      --border2: rgba(0,0,0,0.18);
+      --text: #1a1a18;
+      --text2: #5f5e5a;
+      --text3: #9c9a92;
+      --blue-bg: #e6f1fb;
+      --blue-text: #0c447c;
+      --blue-border: #85b7eb;
+      --green-bg: #eaf3de;
+      --green-text: #27500a;
+      --green-border: #97c459;
+      --amber-bg: #faeeda;
+      --amber-text: #633806;
+      --amber-border: #ef9f27;
+      --red-bg: #fcebeb;
+      --red-text: #791f1f;
+      --red-border: #f09595;
+      --pink-bg: #fbeaf0;
+      --pink-text: #72243e;
+      --pink-border: #ed93b1;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18;
+        --surface: #242422;
+        --surface2: #2c2c2a;
+        --border: rgba(255,255,255,0.10);
+        --border2: rgba(255,255,255,0.18);
+        --text: #e8e6de;
+        --text2: #9c9a92;
+        --text3: #5f5e5a;
+        --blue-bg: #042c53;
+        --blue-text: #b5d4f4;
+        --blue-border: #185fa5;
+        --green-bg: #173404;
+        --green-text: #c0dd97;
+        --green-border: #3b6d11;
+        --amber-bg: #412402;
+        --amber-text: #fac775;
+        --amber-border: #854f0b;
+        --red-bg: #501313;
+        --red-text: #f7c1c1;
+        --red-border: #a32d2d;
+        --pink-bg: #4b1528;
+        --pink-text: #f4c0d1;
+        --pink-border: #993556;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--text); display: flex; align-items: center;
+      justify-content: center;
+    }
+    .topbar-logo svg { width: 16px; height: 16px; }
+    .topbar-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+    .topbar-sub { font-size: 12px; color: var(--text2); }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .api-input {
+      width: 260px; padding: 6px 10px; font-size: 12px;
+      border: 0.5px solid var(--border2); border-radius: var(--radius);
+      background: var(--surface2); color: var(--text);
+      font-family: monospace;
+    }
+    .api-input:focus { outline: none; border-color: var(--blue-border); }
+    .api-save {
+      padding: 6px 12px; font-size: 12px; font-weight: 500;
+      background: var(--blue-bg); color: var(--blue-text);
+      border: 0.5px solid var(--blue-border); border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .api-save:hover { opacity: 0.85; }
+
+    /* ── Layout ── */
+    .app {
+      display: grid;
+      grid-template-columns: 200px 1fr 300px;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 52px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 0.5px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-section { padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+    .sidebar-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      color: var(--text3); text-transform: uppercase;
+      padding: 0 14px 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; font-size: 13px;
+      cursor: pointer; color: var(--text2);
+      transition: background 0.12s;
+    }
+    .nav-item:hover { background: var(--surface2); }
+    .nav-item.active { color: var(--blue-text); background: var(--blue-bg); }
+    .nav-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--border2); flex-shrink: 0;
+    }
+    .nav-dot.critical { background: #e24b4a; }
+    .nav-dot.high     { background: #ef9f27; }
+    .nav-dot.medium   { background: #97c459; }
+    .nav-dot.low      { background: #5dcaa5; }
+    .nav-dot.pink     { background: #d4537e; }
+    .nav-dot.all      { background: var(--text2); }
+
+    .stats-block { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; }
+    .stat-label { font-size: 11px; color: var(--text2); }
+    .stat-val { font-size: 13px; font-weight: 600; }
+    .stat-val.green { color: var(--green-text); }
+
+    .sidebar-footer { padding: 12px 14px; margin-top: auto; border-top: 0.5px solid var(--border); }
+    .avatar-row { display: flex; align-items: center; gap: 8px; }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--surface2); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      border: 0.5px solid var(--border);
+    }
+    .avatar-name { font-size: 12px; font-weight: 500; }
+    .avatar-role { font-size: 11px; color: var(--text2); }
+
+    /* ── Main panel ── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .main-header {
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .main-header h2 { font-size: 14px; font-weight: 600; }
+    .header-meta { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #5dcaa5; display: inline-block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .tickets-list {
+      flex: 1; overflow-y: auto; padding: 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .tickets-list::-webkit-scrollbar { width: 4px; }
+    .tickets-list::-webkit-scrollbar-track { background: transparent; }
+    .tickets-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    .ticket-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .ticket-card:hover { border-color: var(--border2); }
+    .ticket-card.selected {
+      border-color: var(--blue-border);
+      background: var(--blue-bg);
+    }
+    .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+    .tc-left { display: flex; gap: 8px; align-items: flex-start; flex: 1; min-width: 0; }
+    .tc-subject { font-size: 13px; font-weight: 500; line-height: 1.35; flex: 1; min-width: 0; }
+    .ticket-card.selected .tc-subject { color: var(--blue-text); }
+    .tc-meta { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+    .tc-preview { font-size: 12px; color: var(--text2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .badge {
+      font-size: 10px; font-weight: 500; padding: 2px 7px;
+      border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-blue   { background: var(--blue-bg);   color: var(--blue-text);   border: 0.5px solid var(--blue-border); }
+    .badge-green  { background: var(--green-bg);  color: var(--green-text);  border: 0.5px solid var(--green-border); }
+    .badge-amber  { background: var(--amber-bg);  color: var(--amber-text);  border: 0.5px solid var(--amber-border); }
+    .badge-red    { background: var(--red-bg);    color: var(--red-text);    border: 0.5px solid var(--red-border); }
+    .badge-pink   { background: var(--pink-bg);   color: var(--pink-text);   border: 0.5px solid var(--pink-border); }
+    .badge-gray   { background: var(--surface2);  color: var(--text2);       border: 0.5px solid var(--border); }
+
+    .channel-pill {
+      font-size: 10px; padding: 1px 6px;
+      border-radius: 10px; background: var(--surface2);
+      color: var(--text3); border: 0.5px solid var(--border);
+    }
+
+    .p-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .p-dot.critical { background: #e24b4a; }
+    .p-dot.high     { background: #ef9f27; }
+    .p-dot.medium   { background: #97c459; }
+    .p-dot.low      { background: #5dcaa5; }
+    .p-dot.sensitive{ background: #d4537e; }
+    .p-dot.pending  { background: var(--border2); }
+
+    /* ── Input area ── */
+    .input-area {
+      padding: 12px 16px;
+      background: var(--surface);
+      border-top: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .input-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+    .input-row { display: flex; gap: 8px; }
+    .ticket-input {
+      flex: 1; padding: 9px 12px; font-size: 13px;
+      border: 0.5px solid var(--border2); border-radius: var(--radius);
+      background: var(--surface2); color: var(--text);
+      font-family: inherit;
+    }
+    .ticket-input:focus { outline: none; border-color: var(--blue-border); }
+    .ticket-input::placeholder { color: var(--text3); }
+    .send-btn {
+      padding: 9px 16px; font-size: 13px; font-weight: 500;
+      background: var(--text); color: var(--surface);
+      border: none; border-radius: var(--radius);
+      cursor: pointer; transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .example-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip {
+      font-size: 11px; padding: 3px 9px;
+      border: 0.5px solid var(--border2); border-radius: 20px;
+      cursor: pointer; color: var(--text2);
+      background: var(--surface2);
+      transition: background 0.12s;
+    }
+    .chip:hover { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); }
+
+    /* ── Right panel ── */
+    .right-panel {
+      background: var(--surface);
+      border-left: 0.5px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 16px; border-bottom: 0.5px solid var(--border);
+      font-size: 13px; font-weight: 600; flex-shrink: 0;
+    }
+    .panel-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .panel-body::-webkit-scrollbar { width: 4px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    .detail-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+    .detail-value { font-size: 13px; line-height: 1.55; color: var(--text); }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .ai-box {
+      background: var(--blue-bg); border: 0.5px solid var(--blue-border);
+      border-radius: var(--radius); padding: 12px;
+    }
+    .ai-box-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--blue-text); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .ai-box-content { font-size: 12px; line-height: 1.6; color: var(--text); }
+    .ai-box-thinking { font-size: 12px; color: var(--text2); font-style: italic; }
+
+    .sensitive-box {
+      background: var(--pink-bg); border: 0.5px solid var(--pink-border);
+      border-radius: var(--radius); padding: 12px;
+    }
+    .sensitive-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--pink-text); margin-bottom: 6px; }
+    .sensitive-content { font-size: 12px; line-height: 1.6; color: var(--pink-text); }
+
+    .agent-box {
+      background: var(--amber-bg); border: 0.5px solid var(--amber-border);
+      border-radius: var(--radius); padding: 10px 12px;
+    }
+    .agent-box-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--amber-text); margin-bottom: 4px; }
+    .agent-box-content { font-size: 12px; line-height: 1.6; color: var(--amber-text); }
+
+    .panel-actions { padding: 12px 14px; border-top: 0.5px solid var(--border); display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .panel-btn {
+      padding: 8px 12px; font-size: 12px; font-weight: 500;
+      border-radius: var(--radius); cursor: pointer;
+      border: 0.5px solid var(--border2); background: transparent;
+      color: var(--text); font-family: inherit; text-align: left;
+      transition: background 0.12s;
+    }
+    .panel-btn:hover { background: var(--surface2); }
+    .panel-btn.primary { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); }
+    .panel-btn.primary:hover { opacity: 0.85; }
+
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; color: var(--text2); font-size: 13px;
+      padding: 24px; text-align: center;
+    }
+    .empty-icon { font-size: 32px; opacity: 0.2; }
+
+    .empty-tickets {
+      padding: 32px 16px; text-align: center;
+      color: var(--text2); font-size: 13px;
+    }
+    .empty-tickets strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 6px; }
+
+    /* Loading dots */
+    .dots { display: inline-flex; gap: 3px; align-items: center; }
+    .dots span {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--blue-text); opacity: 0.3;
+      animation: dotblink 1.2s ease-in-out infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotblink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: var(--surface);
+      padding: 10px 20px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500; z-index: 999;
+      opacity: 0; transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar, .right-panel { display: none; }
+      .api-input { width: 180px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="5" height="5" rx="1" fill="white"/>
+        <rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+        <rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+        <rect x="9" y="9" width="5" height="5" rx="1" fill="white" opacity="0.3"/>
+      </svg>
+    </div>
+    <div>
+      <div class="topbar-name">NovaTech IT</div>
+      <div class="topbar-sub">Sistema Inteligente de Tickets</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <input class="api-input" type="password" id="api-key-input" placeholder="sk-ant-... (API key de Anthropic)" />
+    <button class="api-save" onclick="saveApiKey()">Guardar</button>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Vistas</div>
+      <div class="nav-item active"><span class="nav-dot all"></span>Todos los tickets</div>
+      <div class="nav-item"><span class="nav-dot pink"></span>Confidenciales</div>
+      <div class="nav-item"><span class="nav-dot critical"></span>Críticos</div>
+      <div class="nav-item"><span class="nav-dot"></span>Resueltos por IA</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Equipo IT</div>
+      <div class="nav-item">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px">MA</div>Marcos
+      </div>
+      <div class="nav-item">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px">AN</div>Ana
+      </div>
+      <div class="nav-item">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px">LU</div>Luis
+      </div>
+    </div>
+    <div class="stats-block">
+      <div class="sidebar-label">Métricas de hoy</div>
+      <div class="stat-row"><span class="stat-label">Tickets totales</span><span class="stat-val" id="s-total">0</span></div>
+      <div class="stat-row"><span class="stat-label">Resueltos por IA</span><span class="stat-val green" id="s-auto">0</span></div>
+      <div class="stat-row"><span class="stat-label">Escalados</span><span class="stat-val" id="s-esc">0</span></div>
+      <div class="stat-row"><span class="stat-label">Resp. promedio</span><span class="stat-val green">&lt; 2 min</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="avatar-row">
+        <div class="avatar">RI</div>
+        <div>
+          <div class="avatar-name">Ricardo</div>
+          <div class="avatar-role">Gerente IT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="main-header">
+      <h2>Bandeja de tickets</h2>
+      <div class="header-meta">
+        <span class="live-dot"></span>
+        <span>Monterrey · Guadalajara</span>
+      </div>
+    </div>
+    <div class="tickets-list" id="tickets-list">
+      <div class="empty-tickets">
+        <strong>Bienvenido al demo</strong>
+        Ingresá tu API key arriba, luego escribí un ticket abajo como si fueras un empleado de NovaTech. La IA lo clasificará automáticamente.
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-label">Simular nuevo ticket (escribí como si fueras un empleado)</div>
+      <div class="input-row">
+        <input class="ticket-input" id="ticket-input"
+          placeholder="Ej: No puedo entrar a la VPN desde mi casa en Guadalajara..." />
+        <button class="send-btn" id="send-btn" onclick="sendTicket()">Enviar →</button>
+      </div>
+      <div class="example-chips">
+        <div class="chip" onclick="fillExample('No puedo entrar a mi cuenta de Google Workspace, se me olvidó la contraseña')">🔑 Reset password</div>
+        <div class="chip" onclick="fillExample('La VPN no me conecta desde casa, tengo Windows 11')">🌐 VPN</div>
+        <div class="chip" onclick="fillExample('Necesito hablar sobre un tema de mi nómina, es algo privado')">🔒 RRHH</div>
+        <div class="chip" onclick="fillExample('El servidor de producción está caído, nadie del equipo de desarrollo puede trabajar')">🚨 Crítico</div>
+        <div class="chip" onclick="fillExample('¿Cómo instalo Slack en mi Mac? Es una Mac nueva')">💻 Software</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="panel-header">Detalle del ticket</div>
+    <div id="panel-content">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <div>Seleccioná un ticket para ver el análisis de la IA</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const TICKETS = [];
+  let selectedId = null;
+  let totalCount = 0, autoCount = 0, escCount = 0;
+
+  const SYSTEM_PROMPT = `Sos el sistema de IA de soporte IT de NovaTech Solutions, empresa mexicana con 200 empleados en Monterrey y Guadalajara.
+
+Analizá el ticket del empleado y respondé SOLO con un JSON válido con esta estructura exacta:
+{
+  "categoria": "Reset de contraseñas" | "VPN y Conectividad" | "Software" | "Permisos y Accesos" | "Hardware" | "Impresoras" | "Servidores/Infraestructura" | "RRHH/Confidencial" | "Varios",
+  "prioridad": "Crítica" | "Alta" | "Media" | "Baja",
+  "sensible": true | false,
+  "puede_resolver_ia": true | false,
+  "respuesta_usuario": "Respuesta amigable en español mexicano para el empleado. Si es sensible, solo confirmar recepción confidencial. Si la IA puede resolver, dar pasos concretos y preguntar si funcionó. Máx 3 oraciones.",
+  "resumen_agente": "Resumen técnico breve para el agente IT. Solo si escala. Máx 1 oración.",
+  "accion": "auto_resolved" | "escalate_normal" | "escalate_critical" | "escalate_sensitive"
+}
+
+Reglas:
+- Si detectás palabras como nómina, sueldo, acoso, queja, despido, RRHH, incapacidad → sensible:true, accion: escalate_sensitive
+- Crítica: sistema caído, múltiples usuarios afectados → tiempo respuesta 15 min
+- Alta: empleado bloqueado sin poder trabajar → 1 hora
+- Media: trabajo parcialmente afectado → 4 horas
+- Baja: dudas, solicitudes sin urgencia → 24 horas
+- Respondé SOLO el JSON, sin markdown ni texto extra`;
+
+  function getApiKey() {
+    return localStorage.getItem('nt_api_key') || '';
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (!key) { showToast('Ingresá tu API key primero'); return; }
+    localStorage.setItem('nt_api_key', key);
+    showToast('✓ API key guardada');
+  }
+
+  window.addEventListener('load', () => {
+    const saved = getApiKey();
+    if (saved) document.getElementById('api-key-input').value = saved;
+  });
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function fillExample(text) {
+    document.getElementById('ticket-input').value = text;
+    document.getElementById('ticket-input').focus();
+  }
+
+  function getPDotClass(t) {
+    if (t.sensible) return 'sensitive';
+    const map = { 'Crítica': 'critical', 'Alta': 'high', 'Media': 'medium', 'Baja': 'low' };
+    return map[t.prioridad] || 'pending';
+  }
+
+  function getStatusBadge(t) {
+    if (!t.analizado) return `<span class="badge badge-blue"><span class="dots"><span></span><span></span><span></span></span></span>`;
+    if (t.sensible) return `<span class="badge badge-pink">Confidencial</span>`;
+    if (t.accion === 'auto_resolved') return `<span class="badge badge-green">IA resuelta</span>`;
+    if (t.accion === 'escalate_critical') return `<span class="badge badge-red">Crítica</span>`;
+    if (t.accion === 'escalate_normal') return `<span class="badge badge-amber">Escalado</span>`;
+    return `<span class="badge badge-blue">Procesando</span>`;
+  }
+
+  function getPriorityBadge(p) {
+    const map = { 'Crítica': 'badge-red', 'Alta': 'badge-amber', 'Media': 'badge-gray', 'Baja': 'badge-green' };
+    return `<span class="badge ${map[p] || 'badge-gray'}">${p}</span>`;
+  }
+
+  function updateStats() {
+    document.getElementById('s-total').textContent = totalCount;
+    document.getElementById('s-auto').textContent = autoCount;
+    document.getElementById('s-esc').textContent = escCount;
+  }
+
+  function renderCard(t) {
+    const el = document.createElement('div');
+    el.className = 'ticket-card' + (selectedId === t.id ? ' selected' : '');
+    el.id = 'tc-' + t.id;
+    const preview = t.mensaje.length > 60 ? t.mensaje.slice(0, 60) + '…' : t.mensaje;
+    const subject = t.analizado
+      ? (t.sensible ? '🔒 Ticket confidencial' : (t.categoria || 'Sin categoría'))
+      : 'Clasificando…';
+    el.innerHTML = `
+      <div class="tc-top">
+        <div class="tc-left">
+          <span class="p-dot ${t.analizado ? getPDotClass(t) : 'pending'}"></span>
+          <span class="tc-subject">${subject}</span>
+        </div>
+        ${getStatusBadge(t)}
+      </div>
+      <div class="tc-meta">
+        <span class="channel-pill">${t.canal}</span>
+        <span>${t.hora}</span>
+      </div>
+      ${(!t.sensible || !t.analizado) ? `<div class="tc-preview">${preview}</div>` : ''}
+    `;
+    el.onclick = () => selectTicket(t.id);
+    return el;
+  }
+
+  function selectTicket(id) {
+    selectedId = id;
+    document.querySelectorAll('.ticket-card').forEach(c => c.classList.remove('selected'));
+    const card = document.getElementById('tc-' + id);
+    if (card) card.classList.add('selected');
+    renderDetail(id);
+  }
+
+  function renderDetail(id) {
+    const t = TICKETS.find(x => x.id === id);
+    if (!t) return;
+    const pc = document.getElementById('panel-content');
+
+    if (!t.analizado) {
+      pc.innerHTML = `
+        <div class="panel-body">
+          <div>
+            <div class="detail-label">Mensaje</div>
+            <div class="detail-value">${t.mensaje}</div>
+          </div>
+          <div class="ai-box">
+            <div class="ai-box-label">◉ IA analizando</div>
+            <div class="ai-box-thinking">Clasificando categoría, prioridad y verificando si es sensible…</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (t.sensible) {
+      pc.innerHTML = `
+        <div class="panel-body">
+          <div class="sensitive-box">
+            <div class="sensitive-label">⊛ Ticket confidencial — Acceso restringido</div>
+            <div class="sensitive-content">Este ticket fue marcado automáticamente como confidencial. Solo RRHH y el responsable autorizado pueden verlo. El contenido no se muestra aquí.</div>
+          </div>
+          <div>
+            <div class="detail-label">Acción tomada</div>
+            <div class="detail-value">Notificación enviada a Jefa de RRHH · Ticket cifrado</div>
+          </div>
+          <div>
+            <div class="detail-label">Respuesta enviada al empleado</div>
+            <div class="detail-value">${t.respuesta_usuario}</div>
+          </div>
+          <div>
+            <div class="detail-label">Canal</div>
+            <div class="detail-value"><span class="channel-pill">${t.canal}</span></div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const isResolved = t.accion === 'auto_resolved';
+    const isCritical = t.accion === 'escalate_critical';
+    const estadoTexto = isResolved
+      ? '✓ Resuelta por IA automáticamente'
+      : isCritical
+        ? '⚡ Escalado a Marcos — respuesta en 15 min'
+        : '→ Escalado a equipo IT — en cola';
+
+    const sla = { 'Crítica': '15 min', 'Alta': '1 hora', 'Media': '4 horas', 'Baja': '24 horas' };
+
+    pc.innerHTML = `
+      <div class="panel-body">
+        <div class="detail-grid">
+          <div>
+            <div class="detail-label">Categoría</div>
+            <div class="detail-value" style="font-size:12px">${t.categoria}</div>
+          </div>
+          <div>
+            <div class="detail-label">Prioridad</div>
+            <div class="detail-value">${getPriorityBadge(t.prioridad)}</div>
+          </div>
+          <div>
+            <div class="detail-label">SLA</div>
+            <div class="detail-value" style="font-size:12px">${sla[t.prioridad] || '—'}</div>
+          </div>
+          <div>
+            <div class="detail-label">Canal</div>
+            <div class="detail-value"><span class="channel-pill">${t.canal}</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="detail-label">Mensaje del empleado</div>
+          <div class="detail-value" style="font-size:12px">${t.mensaje}</div>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-label">◉ Respuesta de la IA al empleado</div>
+          <div class="ai-box-content">${t.respuesta_usuario}</div>
+        </div>
+        ${!isResolved && t.resumen_agente ? `
+        <div class="agent-box">
+          <div class="agent-box-label">→ Resumen para el agente IT</div>
+          <div class="agent-box-content">${t.resumen_agente}</div>
+        </div>` : ''}
+        <div>
+          <div class="detail-label">Estado</div>
+          <div class="detail-value" style="font-size:12px">${estadoTexto}</div>
+        </div>
+      </div>
+      <div class="panel-actions">
+        ${isResolved
+          ? `<button class="panel-btn primary" onclick="copyResponse('${id}')">Copiar respuesta enviada</button>`
+          : `<button class="panel-btn primary" onclick="markResolved('${id}')">Marcar como resuelto</button>`}
+        <button class="panel-btn" onclick="showToastMsg('Ticket #${t.id} reasignado a Ana')">Reasignar ticket</button>
+      </div>`;
+  }
+
+  function copyResponse(id) {
+    const t = TICKETS.find(x => x.id == id);
+    if (!t) return;
+    navigator.clipboard.writeText(t.respuesta_usuario).then(() => showToast('✓ Respuesta copiada'));
+  }
+
+  function markResolved(id) {
+    const t = TICKETS.find(x => x.id == id);
+    if (!t) return;
+    t.accion = 'auto_resolved';
+    autoCount++; escCount = Math.max(0, escCount - 1);
+    updateStats();
+    const card = renderCard(t);
+    document.getElementById('tc-' + t.id)?.replaceWith(card);
+    renderDetail(id);
+    showToast('✓ Ticket marcado como resuelto');
+  }
+
+  function showToastMsg(msg) { showToast(msg); }
+
+  async function sendTicket() {
+    const input = document.getElementById('ticket-input');
+    const btn = document.getElementById('send-btn');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const apiKey = getApiKey();
+    if (!apiKey) { showToast('⚠ Ingresá tu API key de Anthropic primero'); return; }
+
+    input.value = '';
+    btn.disabled = true;
+
+    const now = new Date();
+    const hora = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    const canales = ['Slack #ayuda-it', 'Email soporte@', 'Slack directo'];
+    const canal = canales[Math.floor(Math.random() * canales.length)];
+    totalCount++;
+
+    const ticket = {
+      id: Date.now(),
+      mensaje: msg, hora, canal,
+      analizado: false,
+      categoria: null, prioridad: null, sensible: false,
+      puede_resolver_ia: false, respuesta_usuario: '',
+      resumen_agente: '', accion: null
+    };
+
+    TICKETS.unshift(ticket);
+
+    const list = document.getElementById('tickets-list');
+    const emptyEl = list.querySelector('.empty-tickets');
+    if (emptyEl) emptyEl.remove();
+
+    const card = renderCard(ticket);
+    list.insertBefore(card, list.firstChild);
+    selectTicket(ticket.id);
+    updateStats();
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: msg }]
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'API error');
+      }
+
+      const data = await res.json();
+      const raw = data.content.map(b => b.text || '').join('');
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      ticket.categoria = parsed.categoria;
+      ticket.prioridad = parsed.prioridad;
+      ticket.sensible = parsed.sensible;
+      ticket.puede_resolver_ia = parsed.puede_resolver_ia;
+      ticket.respuesta_usuario = parsed.respuesta_usuario;
+      ticket.resumen_agente = parsed.resumen_agente || '';
+      ticket.accion = parsed.accion;
+      ticket.analizado = true;
+
+      if (parsed.accion === 'auto_resolved') autoCount++;
+      else escCount++;
+      updateStats();
+
+    } catch (e) {
+      ticket.categoria = 'Error de clasificación';
+      ticket.prioridad = 'Media';
+      ticket.sensible = false;
+      ticket.respuesta_usuario = 'Tu ticket fue recibido. Un agente lo revisará pronto.';
+      ticket.resumen_agente = 'Error al procesar con IA: ' + e.message;
+      ticket.accion = 'escalate_normal';
+      ticket.analizado = true;
+      escCount++;
+      updateStats();
+      showToast('⚠ Error de API: ' + e.message);
+    }
+
+    const updated = renderCard(ticket);
+    document.getElementById('tc-' + ticket.id)?.replaceWith(updated);
+    if (selectedId === ticket.id) renderDetail(ticket.id);
+    btn.disabled = false;
+  }
+
+  document.getElementById('ticket-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendTicket();
+  });
+</script>
+</body>
+</html>
